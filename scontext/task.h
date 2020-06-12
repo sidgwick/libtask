@@ -7,20 +7,20 @@ typedef struct __stack stack_t;
 
 /* 表示 CPU 寄存器的结构体 */
 struct __smcontext {
-    uint32_t fs;
-    uint32_t es;
-    uint32_t ds;
-    uint32_t ss;
+    uint32_t fs;  // 0
+    uint32_t es;  // 4
+    uint32_t ds;  // 8
+    uint32_t ss;  // 12
 
-    uint32_t edi;
-    uint32_t esi;
-    uint32_t ebp;
-    uint32_t ebx;
-    uint32_t edx;
-    uint32_t ecx;
-    uint32_t esp;
-    uint32_t eip;
-    uint32_t eax;
+    uint32_t edi;  // 16
+    uint32_t esi;  // 20
+    uint32_t ebp;  // 24
+    uint32_t ebx;  // 28
+    uint32_t edx;  // 32
+    uint32_t ecx;  // 36
+    uint32_t esp;  // 40
+    uint32_t eip;  // 44
+    uint32_t eax;  // 48
 };
 
 /* 表示运行时栈 */
@@ -36,7 +36,7 @@ struct __scontext {
 };
 
 int getcontext(smcontext_t *);
-int setcontext(smcontext_t *);
+int setcontext(const smcontext_t *);
 
 // int setcontext(smcontext_t *cpu) {
 //     cpu->es = 1;

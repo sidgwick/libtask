@@ -43,6 +43,6 @@ setcontext:
   movl  36(%eax), %ecx
 
   movl  40(%eax), %esp
-  pushl  44(%eax)
+  pushl  44(%eax) /* %eip */
   movl  48(%eax), %eax
   ret

@@ -2,32 +2,26 @@
 
 /*
 struct mcontext {
-    int mc_onstack;    // 0
-    int mc_rdi;        // 4
-    int mc_rsi;        // 8
-    int mc_rdx;        // 12
-    int mc_rcx;        // 16
-    int mc_r8;         // 20
-    int mc_r9;         // 24
-    int mc_rax;        // 28
-    int mc_rbx;        // 32
-    int mc_rbp;        // 36
-    int mc_r10;        // 40
-    int mc_r11;        // 44
-    int mc_r12;        // 48
-    int mc_r13;        // 52
-    int mc_r14;        // 56
-    int mc_r15;        // 60
-    int mc_trapno;     // 64
-    int mc_addr;       // 68
-    int mc_flags;      // 72
-    int mc_err;        // 76
-    int mc_rip;        // 80
-    int mc_cs;         // 84
-    int mc_rflags;     // 88
-    int mc_rsp;        // 92
-    int mc_ss;         // 96
-
+	int mc_onstack; // 0
+    int mc_gs;      // 4
+    int mc_fs;      // 8
+    int mc_es;      // 12
+    int mc_ds;      // 16
+    int mc_edi;     // 20
+    int mc_esi;     // 24
+    int mc_ebp;     // 28
+    int mc_isp;     // 32
+    int mc_ebx;     // 36
+    int mc_edx;     // 40
+    int mc_ecx;     // 44
+    int mc_eax;     // 48
+    int mc_trapno;  // 52
+    int mc_err;     // 56
+    int mc_eip;     // 60
+    int mc_cs;      // 64
+    int mc_eflags;  // 68
+    int mc_esp;     // 72
+    int mc_ss;      // 76
 	....
 };
 
