@@ -15,13 +15,13 @@ extern "C" {
  */
 
 typedef struct Task Task;
-typedef struct Tasklist Tasklist;
+typedef struct Tasklist Tasklist; /* Tasklist 是追踪所有协程对象的双向链表 */
 
 int anyready(void);
 int taskcreate(void (*f)(void *arg), void *arg, unsigned int stacksize);
 void taskexit(int);
 void taskexitall(int);
-void taskmain(int argc, char *argv[]);
+void taskmain(int argc, char *argv[]); /* 需要由用户提供的程序入口函数 */
 int taskyield(void);
 void **taskdata(void);
 void needstack(int);

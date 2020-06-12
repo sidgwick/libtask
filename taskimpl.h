@@ -149,23 +149,31 @@ struct Context {
     ucontext_t uc;
 };
 
+/* task 定义了协程对象 */
 struct Task {
     char name[256];  // offset known to acid
     char state[256];
+
     Task *next;
     Task *prev;
+
     Task *allnext;
     Task *allprev;
-    Context context;
+
+    Context context; /* 上下文 */
     uvlong alarmtime;
-    uint id;
-    uchar *stk;
-    uint stksize;
-    int exiting;
-    int alltaskslot;
+
+    uint id;      /* 协程 ID */
+    uchar *stk;   /* 运行时栈 */
+    uint stksize; /* 运行时栈大小 */
+
+    int alltaskslot; /* 携程在 alltask 池里面的索引 */
     int system;
+
+    int exiting;
     int ready;
-    void (*startfn)(void *);
+
+    void (*startfn)(void *); /* 入口回调函数 */
     void *startarg;
     void *udata;
 };
