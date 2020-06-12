@@ -6,7 +6,7 @@
 #include <ucontext.h>
 
 int main() {
-    ucontext_t uc;
+    sucontext_t uc;
     int i = 0;
     printf("before getcontext\n");
     getcontext(&uc);
