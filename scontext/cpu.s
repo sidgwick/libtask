@@ -20,18 +20,19 @@ getcontext:
   movl  %edx, 16(%eax)
   movl  %ecx, 20(%eax)
 
-  /* 设置将来 setcontext 之后的 %eax 值为 1, 这个立即数 1 貌似没有什么含义 */
+  /* 设置将来 setcontext 之后的 %eax 值为 1, 这个 1 将来也有类似 setcontext 返回值的效果 */
   movl  $1, 32(%eax)
 
   /* 设置将来 setcontext 之后的 %eip
    * callq 指令会将 getcontext 调用时候的下一条指令地址压入 (%esp)
+   * 所以这里的效果就是将来 setcontext 之后从调用该 setcontext 的下一行开始执行
    */
   movl (%esp), %ecx
   movl %ecx, 28(%eax)
 
   /* 设置将来 setcontext 的 %esp */
   leal 4(%esp), %ecx
-  movl %ecx, 24(%eax) /* %esp, 栈指针 --> getcontext 函数出口处的栈指针位置 */
+  movl %ecx, 24(%eax) /* 4(%esp) = getcontext函数栈帧栈顶指针, leal 指令取该内存地址 */
 
   /* restore %ecx */
   movl 20(%eax), %ecx
@@ -58,5 +59,14 @@ setcontext:
 
   movl  24(%eax), %esp
   pushl  28(%eax) /* %eip */
+
+  /* 请注意这里设置的不是 setcontext  函数本身的返回值, 而是上面 getcontext 的返回值.
+   * setcontext 函数比较特殊, 它将自己退出之后的后续指令地址设置为 28(%eax)
+   * setcontext 执行之后它后面的所有指令都执行不到, 这就是为什么 swapcontext 函数需要将
+   * setcontext 函数用 if 包起来的原因
+   *
+   * 上面把 %eip 恢复到退出 getcontext 之后的地方了, 因此这里 ret
+   * 之后的效果就是以 32(%eax) 作为返回值继续 setcontext 后面的指令执行 */
   movl  32(%eax), %eax
+
   ret

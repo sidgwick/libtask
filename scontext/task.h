@@ -7,6 +7,7 @@ typedef struct __stack stack_t;
 
 /* 表示 CPU 寄存器的结构体 */
 struct __smcontext {
+    ///////////////// 下面的数字表示字段在内存中偏移量
     uint32_t edi;  // 0
     uint32_t esi;  // 4
     uint32_t ebp;  // 8

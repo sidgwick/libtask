@@ -59,7 +59,15 @@ void make_context(scontext_t *ctx, void *coroutine) {
 }
 
 int swapcontext(smcontext_t *from, const smcontext_t *to) {
-    if (getcontext(from) == 0) {
+    /* gr == 0 是正常流程中调用的返回值
+     * gr == 1 是 setcontext 函数切换上下文回来到这个位置的效果
+     *
+     * 很明显这里我们不希望 setcontext 切换回来之后还去执行 setcontext.
+     * 因为如果 to 上下文是之前某次调用本函数保存的上下文状态, 那么这样做会
+     * 让程序不断地在 getcontext/setcontext 之间跳转, 会产生类似死循环的效果
+     */
+    int gr = getcontext(from);
+    if (gr == 0) {
         setcontext(to);
     }
 
@@ -127,7 +135,7 @@ void coroutine_entry(coroutine_t *c) {
 void c_main(coroutine_t *c, void *arg) {
     printf("c_main run\n");
     for (int i = 0; i < 5; i++) {
-        printf("%d(%s) circle: %d\n", c->id, (char *)arg, i);
+        printf("%d(%s) loop round: %d\n", c->id, (char *)arg, i);
         coroutine_yield(c);
     }
 }
@@ -140,14 +148,14 @@ void scheduler_run(scheduler_t *s) {
             if (c->status == READY) {
                 // 执行这个协程
                 s->current = c->id;
-                printf("---- start to run coroutine %d ----\n", c->id);
+//                printf("---- start to run coroutine %d ----\n", c->id);
                 swapcontext(&s->ctx.mcontext, &c->ctx.mcontext);
-                printf("---- end to run coroutine %d ----\n", c->id);
+//                printf("---- end to run coroutine %d ----\n", c->id);
                 s->current = 0;
             } else if (c->status == STOPPED) {
                 // 删掉这个协程
-                printf("---- coroutine %d deleted ----\n", c->id);
-                s->coroutines[i] = s->coroutines[s->size-1];
+//                printf("---- coroutine %d deleted ----\n", c->id);
+                s->coroutines[i] = s->coroutines[s->size - 1];
 
                 s->size -= 1;
                 i -= 1;
