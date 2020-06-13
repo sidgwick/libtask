@@ -3,7 +3,8 @@
 
 #include "task.h"
 
-int main() {
+
+int main_real() {
     scontext_t *ctx = malloc(sizeof(scontext_t));
 
     int i = 0;
@@ -20,4 +21,8 @@ int main() {
 
     printf("context change test done.\n");
     return 0;
+}
+
+int main() {
+    return main_real();
 }
