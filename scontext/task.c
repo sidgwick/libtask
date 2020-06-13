@@ -6,7 +6,10 @@
 
 typedef struct coroutine coroutine_t;
 typedef struct scheduler scheduler_t;
-typedef int(entrance)(coroutine_t *, void *); /* 返回值表示是否需要继续被调度 */
+
+typedef void(entrance)(coroutine_t *, void *); /* 返回值表示是否需要继续被调度 */
+
+void coroutine_entry(coroutine_t *c);
 
 int generate_id = 1;
 enum {
@@ -40,17 +43,18 @@ struct scheduler {
     coroutine_t *coroutines[0]; /* 维护的协程列表 */
 };
 
-void make_context(scontext_t *ctx, entrance *f, void *arg, void *coroutine) {
+void make_context(scontext_t *ctx, void *coroutine) {
     int *sp = (int *)ctx->stack.ss_sp + ctx->stack.ss_size / 4;
 
     /* 在栈空间上留下参数信息, 当进入 f 执行的时候就可以用了
      * 请注意栈是从大往小生长的 */
-    *--sp = arg;
-    *--sp = coroutine;
+    // sp = (void *)((uintptr_t)sp - (uintptr_t)sp % 16); /* 16-align for OS X */
+    // *--sp = (int)arg;
+    *--sp = (int)coroutine;
 
     *--sp = 0; /* return address */
 
-    ctx->mcontext.eip = (long)f;
+    ctx->mcontext.eip = (long)coroutine_entry;
     ctx->mcontext.esp = (int)sp;
 }
 
@@ -87,7 +91,7 @@ coroutine_t *_create_coroutine(entrance *f, void *arg, size_t size) {
     c->ctx.stack.ss_sp = c->stack;
 
     getcontext(&c->ctx.mcontext);
-    make_context(&c->ctx, f, arg, c);
+    make_context(&c->ctx, c);
 
     return c;
 }
@@ -111,15 +115,21 @@ void coroutine_yield(coroutine_t *c) {
     swapcontext(&c->ctx.mcontext, &c->s->ctx.mcontext);
 }
 
-int c_main(coroutine_t *c, void *arg) {
+/* 协程的入口函数 */
+void coroutine_entry(coroutine_t *c) {
+    c->main(c, c->arg);
+    c->status = STOPPED;
+
+    /* 执行完成之后, 切回主协程继续执行 */
+    swapcontext(&c->ctx.mcontext, &c->s->ctx.mcontext);
+}
+
+void c_main(coroutine_t *c, void *arg) {
     printf("c_main run\n");
     for (int i = 0; i < 5; i++) {
-        printf("circle\n");
-
+        printf("%d(%s) circle: %d\n", c->id, (char *)arg, i);
         coroutine_yield(c);
     }
-
-    return 0;
 }
 
 void scheduler_run(scheduler_t *s) {
@@ -130,12 +140,19 @@ void scheduler_run(scheduler_t *s) {
             if (c->status == READY) {
                 // 执行这个协程
                 s->current = c->id;
+                printf("---- start to run coroutine %d ----\n", c->id);
                 swapcontext(&s->ctx.mcontext, &c->ctx.mcontext);
+                printf("---- end to run coroutine %d ----\n", c->id);
                 s->current = 0;
-                c->status = READY;
             } else if (c->status == STOPPED) {
                 // 删掉这个协程
-                s->coroutines[i] = s->coroutines[s->size--];
+                printf("---- coroutine %d deleted ----\n", c->id);
+                s->coroutines[i] = s->coroutines[s->size-1];
+
+                s->size -= 1;
+                i -= 1;
+            } else if (c->status == WAITING) {
+                c->status = READY;
             }
         }
     }
@@ -155,9 +172,10 @@ int main() {
     for (int i = 1; i < 4; i++) {
         /* 256 的栈大小足够了 */
         char *x = coroutine_name(i);
-        coroutine_t *t = create_coroutine(s, c_main, (void *)x, 256);
+        coroutine_t *t = create_coroutine(s, c_main, (void *)x, 12256);
         printf("create coroutine %d done.\n", t->id);
     }
 
     scheduler_run(s);
+    return 0;
 }

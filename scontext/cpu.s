@@ -1,16 +1,18 @@
 /* 参考资料:
  * esp 寄存器与参数和返回值: https://stackoverflow.com/questions/3699283/what-is-stack-frame-in-assembly/3700219#3700219
-
  */
 
 .globl getcontext
 getcontext:
   movl 4(%esp), %eax
 
+  /* 下面 4 行保存 4 个 16 位的段寄存器到结构体中 */
   mov  %fs, 36(%eax)
   mov  %es, 38(%eax)
   mov  %ds, 40(%eax)
   mov  %ss, 42(%eax)
+
+  /* 接下来保存 9 个 32 位的寄存器 */
   movl  %edi, (%eax)
   movl  %esi, 4(%eax)
   movl  %ebp, 8(%eax)
@@ -21,8 +23,10 @@ getcontext:
   /* 设置将来 setcontext 之后的 %eax 值为 1, 这个立即数 1 貌似没有什么含义 */
   movl  $1, 32(%eax)
 
-  /* 设置将来 setcontext 之后的 %eip */
-  movl (%esp), %ecx /* %esp 指向的内存地址是 getcontext 函数的 */
+  /* 设置将来 setcontext 之后的 %eip
+   * callq 指令会将 getcontext 调用时候的下一条指令地址压入 (%esp)
+   */
+  movl (%esp), %ecx
   movl %ecx, 28(%eax)
 
   /* 设置将来 setcontext 的 %esp */
