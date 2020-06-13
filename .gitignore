@@ -1,3 +1,7 @@
 a.out
 *.o
 *.s
+.vscode
+*.dSYM
+.idea
+.venv
