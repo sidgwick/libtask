@@ -17,9 +17,9 @@ all: $(LIB) primes tcpproxy testdelay
 
 $(OFILES): taskimpl.h task.h 386-ucontext.h power-ucontext.h
 
-AS=gcc -c
-CC=gcc
-CFLAGS=-Wall -c -I. -ggdb
+AS=gcc -m32 -c
+CC=gcc -m32
+CFLAGS=-Wall -c -I. -ggdb -O0
 
 %.o: %.S
 	$(AS) $*.S

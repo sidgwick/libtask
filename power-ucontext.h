@@ -1,7 +1,7 @@
 #define setcontext(u) _setmcontext(&(u)->mc)
 #define getcontext(u) _getmcontext(&(u)->mc)
-typedef struct mcontext mcontext_t;
-typedef struct ucontext ucontext_t;
+typedef struct mcontext smcontext_t;
+typedef struct ucontext sucontext_t;
 struct mcontext {
     ulong pc;      /* lr */
     ulong cr;      /* mfcr */
@@ -25,10 +25,10 @@ struct ucontext {
         uint ss_size;
     } uc_stack;
     sigset_t uc_sigmask;
-    mcontext_t mc;
+    smcontext_t mc;
 };
 
-void makecontext(ucontext_t *, void (*)(void), int, ...);
-int swapcontext(ucontext_t *, const ucontext_t *);
-int _getmcontext(mcontext_t *);
-void _setmcontext(const mcontext_t *);
+void makecontext(sucontext_t *, void (*)(void), int, ...);
+int swapcontext(sucontext_t *, const sucontext_t *);
+int _getmcontext(smcontext_t *);
+void _setmcontext(const smcontext_t *);

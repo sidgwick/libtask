@@ -1,12 +1,12 @@
 #define setcontext(u) setmcontext(&(u)->uc_mcontext)
 #define getcontext(u) getmcontext(&(u)->uc_mcontext)
-typedef struct mcontext mcontext_t;
-typedef struct ucontext ucontext_t;
+typedef struct mcontext smcontext_t;
+typedef struct ucontext sucontext_t;
 
-extern int swapcontext(ucontext_t *, const ucontext_t *);
-extern void makecontext(ucontext_t *, void (*)(), int, ...);
-extern int getmcontext(mcontext_t *);
-extern void setmcontext(const mcontext_t *);
+extern int swapcontext(sucontext_t *, const sucontext_t *);
+extern void makecontext(sucontext_t *, void (*)(), int, ...);
+extern int getmcontext(smcontext_t *);
+extern void setmcontext(const smcontext_t *);
 
 /*-
  * Copyright (c) 1999 Marcel Moolenaar
@@ -74,7 +74,7 @@ struct mcontext {
     /*
 	 * The first 20 fields must match the definition of
 	 * sigcontext. So that we can support sigcontext
-	 * and ucontext_t at the same time.
+	 * and sucontext_t at the same time.
 	 */
     long mc_onstack; /* XXX - sigcontext compat. */
     long mc_rdi;     /* machine state (struct trapframe) */
@@ -102,7 +102,7 @@ struct mcontext {
     long mc_rsp;
     long mc_ss;
 
-    long mc_len;                /* sizeof(mcontext_t) */
+    long mc_len;                /* sizeof(smcontext_t) */
 #define _MC_FPFMT_NODEV 0x10000 /* device not present or configured */
 #define _MC_FPFMT_XMM 0x10002
     long mc_fpformat;
@@ -122,12 +122,12 @@ struct ucontext {
 	 * Keep the order of the first two fields. Also,
 	 * keep them the first two fields in the structure.
 	 * This way we can have a union with struct
-	 * sigcontext and ucontext_t. This allows us to
+	 * sigcontext and sucontext_t. This allows us to
 	 * support them both at the same time.
 	 * note: the union is not defined, though.
 	 */
     sigset_t uc_sigmask;
-    mcontext_t uc_mcontext;
+    smcontext_t uc_mcontext;
 
     struct __ucontext *uc_link;
     stack_t uc_stack;
