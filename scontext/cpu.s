@@ -1,5 +1,7 @@
 /* 参考资料:
  * esp 寄存器与参数和返回值: https://stackoverflow.com/questions/3699283/what-is-stack-frame-in-assembly/3700219#3700219
+ * C 函数的栈帧结构: https://blog.csdn.net/xbb224007/article/details/80106961
+ * 这两段汇编很好懂, 理解清楚 C 语言函数调用的栈帧结构, 一眼就能看明白. 理不清楚栈帧结构怎么看都不会明白
  */
 
 .globl getcontext
