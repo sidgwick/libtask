@@ -165,8 +165,7 @@ void tasksystem(void) {
 void taskswitch(void) {
     needstack(0);
 
-    /* 使用 POSIX 标准提供的上下文切换功能切换上下文并运行 taskschedcontext 上下文中保存的协程
-     * TODO: 弄懂切换过程的细节(保存寄存器数据/设置新的执行栈?) */
+    /* 使用 POSIX 标准提供的上下文切换功能切换上下文并运行 taskschedcontext 上下文中保存的协程 */
     contextswitch(&taskrunning->context, &taskschedcontext);
 }
 
@@ -303,10 +302,10 @@ void needstack(int n) {
     /* 前置知识: 栈是从高往低生长
      *
      * 这里申明 t 变量, 从栈上为它分配存储空间, 因此 t 位于当前执行的协程(也即: taskrunning)的栈顶
-     * 
+     *
      * (char *)&t 这个表达式算出来的就是 t 变量所在的内存地址, 也即当前执行协程的栈顶
      * (char *)t->stk 指向当前执行协程的栈底
-     * 
+     *
      * 下面的代码就很明了了 */
 
     if ((char *)&t <= (char *)t->stk || (char *)&t - (char *)t->stk < 256 + n) {

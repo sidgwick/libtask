@@ -41,6 +41,8 @@ struct Tasklist /* used internally */
 
 /*
  * queuing locks
+ *
+ * 锁实现
  */
 typedef struct QLock QLock;
 struct QLock {
@@ -54,13 +56,15 @@ void qunlock(QLock *);
 
 /*
  * reader-writer locks
+ *
+ * 读写锁
  */
 typedef struct RWLock RWLock;
 struct RWLock {
-    int readers;
-    Task *writer;
-    Tasklist rwaiting;
-    Tasklist wwaiting;
+    int readers;       /* 持有读锁的数量 */
+    Task *writer;      /* 写协程 */
+    Tasklist rwaiting; /* 等待获取读锁的协程列表 */
+    Tasklist wwaiting; /* 等待获取写锁的协程列表 */
 };
 
 void rlock(RWLock *);
@@ -93,35 +97,36 @@ typedef struct Altarray Altarray;
 typedef struct Channel Channel;
 
 enum {
-    CHANEND,
-    CHANSND,
-    CHANRCV,
-    CHANNOP,
-    CHANNOBLK,
+    CHANEND,   /* 标志当前位置已经处于通道的末尾位置 */
+    CHANSND,   /* 发送数据操作 */
+    CHANRCV,   /* 接受数据操作 */
+    CHANNOP,   /* 无操作占位标记 */
+    CHANNOBLK, /* 不阻塞标记 */
 };
 
 struct Alt {
-    Channel *c;
-    void *v;
-    unsigned int op;
-    Task *task;
-    Alt *xalt;
+    Channel *c;      /* alt 元素对应的 channel */
+    void *v;         /* 值 */
+    unsigned int op; /* 操作 */
+    Task *task;      /* 对应的协程 */
+    Alt *xalt;       /* Alt 元素对应的操作暂存数据, 这个指针主要用于将来清理这些暂存数据 */
 };
 
 struct Altarray {
     Alt **a;
-    unsigned int n;
-    unsigned int m;
+    unsigned int n; /* a 字段中有效元素数量 */
+    unsigned int m; /* a 字段可容纳元素数量 */
 };
 
 struct Channel {
-    unsigned int bufsize;
-    unsigned int elemsize;
-    unsigned char *buf;
-    unsigned int nbuf;
-    unsigned int off;
-    Altarray asend;
-    Altarray arecv;
+    unsigned int elemsize; /* channel 中现有元素的大小 */
+
+    unsigned char *buf;   /* 元素 buffer */
+    unsigned int bufsize; /* buf 最多可以容纳元素数量 */
+    unsigned int nbuf;    /* 现在 buf 里面有所少元素 */
+    unsigned int off;     /* 当前读取/写入通道的 offset */
+    Altarray asend;       /* 发送通道 */
+    Altarray arecv;       /* 接受通道 */
     char *name;
 };
 

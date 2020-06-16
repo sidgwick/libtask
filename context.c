@@ -12,7 +12,7 @@ void makecontext(sucontext_t *ucp, void (*func)(void), int argc, ...) {
     sp = (void *)((uintptr_t)sp - (uintptr_t)sp % 16); /* 16-align for OS X */
     memmove(sp, &argc + 1, argc * sizeof(int));
 
-    printf("AAAAA");
+    // printf("AAAAA");
 
     *--sp = 0; /* return address */
     ucp->uc_mcontext.mc_eip = (long)func;

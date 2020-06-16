@@ -60,11 +60,13 @@ void taskmain(int argc, char **argv) {
     else
         goal = 100;
 
-    printf("goal=%d, buffer=%d\n", goal, buffer);
-
     c = chancreate(sizeof(unsigned long), buffer);
 
     taskcreate(primetask, c, 32768);
+
+    chansendul(c, i);
+    i = chanrecvul(c);
+    printf("goal=%d, buffer=%d, i=%d\n", goal, buffer, i);
 
     /* 在这个死循环里面向通道里面发送数据
      * 这个函数是在调度器里面调度的, 没法有返回值, 所以这里是个死循环 */
