@@ -64,8 +64,8 @@ void taskmain(int argc, char **argv) {
 
     taskcreate(primetask, c, 32768);
 
-    chansendul(c, i);
-    i = chanrecvul(c);
+    // chansendul(c, i);
+    // i = chanrecvul(c);
     printf("goal=%d, buffer=%d, i=%d\n", goal, buffer, i);
 
     /* 在这个死循环里面向通道里面发送数据

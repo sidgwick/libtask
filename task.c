@@ -6,13 +6,13 @@
 #include "taskimpl.h"
 
 int taskdebuglevel;
-int taskcount;
-int tasknswitch;
+int taskcount;     /* 记录目前有多少个 "非系统任务" 协程, 这个数目也不包含调度器协程 */
+int tasknswitch;   /* 记录当前已经做了多少次协程切换操作 */
 int taskexitval;   /* 当前正在运行中协程退出码 */
 Task *taskrunning; /* 指向当前正在运行的协程对象 */
 
-Context taskschedcontext;
-Tasklist taskrunqueue;
+Context taskschedcontext; /* 调度器上下文 */
+Tasklist taskrunqueue;    /* 待运行协程队列 */
 
 Task **alltask;
 int nalltask;
@@ -153,7 +153,8 @@ int taskcreate(void (*fn)(void *), void *arg, uint stack) {
     return id;
 }
 
-/* TODO: 这是啥? */
+/* 这个函数会将当前运行的协程标记为 "系统任务"
+ * 当判断程序结束的时候, 如果有正在运行中的系统任务也会将他们忽略 */
 void tasksystem(void) {
     if (!taskrunning->system) {
         taskrunning->system = 1;
@@ -175,12 +176,17 @@ void taskready(Task *t) {
     addtask(&taskrunqueue, t);
 }
 
-/* 挂起一个协程, 让出资源 */
+/* 挂起一个协程, 让出资源(taskswitch)
+ * 返回值 -1 表示让出去资源之后没有做任何调度又回到这里来了
+ * 这种情况不会发生因为我们的 taskrunqueue 队列里面最少有一个当前运行的 taskrunning
+ *
+ * 如果返回值等于 0, 说明运行协程只有主(调度器)协程和被 yield 的 taskrunning 协程
+ * 如果返回值大于 0, 说明处理上面提到的两个协程之外还有其他协程 */
 int taskyield(void) {
     int n;
 
-    n = tasknswitch;
-    taskready(taskrunning); /* 先标记状态, 并加入到链表队列中 */
+    n = tasknswitch;        /* 目前已经调度的次数 */
+    taskready(taskrunning); /* 先标记状态, 并加入到 taskrunqueue 队列中 */
     taskstate("yield");
     taskswitch();
 
@@ -220,8 +226,10 @@ static void taskscheduler(void) {
     taskdebug("scheduler enter");
     for (;;) {
         /* 在死循环里面调度各个协程 */
-        if (taskcount == 0)
+        if (taskcount == 0) {
+            /* 注意这里, 没有运行时的 taskcount 就回整个退出程序 */
             exit(taskexitval);
+        }
 
         t = taskrunqueue.head;
         if (t == nil) {
@@ -247,8 +255,10 @@ static void taskscheduler(void) {
 
         /* 如果目标协程已经终止, 清理相应的资源 */
         if (t->exiting) {
-            if (!t->system)
+            /* taskcount 仅针对非系统任务计数 */
+            if (!t->system) {
                 taskcount--;
+            }
 
             i = t->alltaskslot;
             alltask[i] = alltask[--nalltask]; /* 把最后那个协程对象移动到删掉的对象占据的槽位上 */
