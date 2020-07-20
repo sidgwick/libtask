@@ -29,10 +29,11 @@ void chanfree(Channel *c) {
     free(c);
 }
 
+/* 向 altarray 中追加元素, 必要的时候追加 16 个空闲空间 */
 static void addarray(Altarray *a, Alt *alt) {
     if (a->n == a->m) {
         a->m += 16;
-        a->a = realloc(a->a, a->m * sizeof a->a[0]);
+        a->a = realloc(a->a, a->m * sizeof(a->a[0]));
     }
 
     a->a[a->n++] = alt;

@@ -119,7 +119,7 @@ struct Altarray {
 };
 
 struct Channel {
-    unsigned int elemsize; /* channel 中现有元素的大小 */
+    unsigned int elemsize; /* channel 中现有元素的大小(单个) */
 
     unsigned char *buf;   /* 元素 buffer */
     unsigned int bufsize; /* buf 最多可以容纳元素数量 */
