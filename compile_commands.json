@@ -1,0 +1,167 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-g",
+      "-m32",
+      "asm.S"
+    ],
+    "directory": "/app",
+    "file": "/app/asm.S"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "channel.c"
+    ],
+    "directory": "/app",
+    "file": "/app/channel.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "context.c"
+    ],
+    "directory": "/app",
+    "file": "/app/context.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "fd.c"
+    ],
+    "directory": "/app",
+    "file": "/app/fd.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "net.c"
+    ],
+    "directory": "/app",
+    "file": "/app/net.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "print.c"
+    ],
+    "directory": "/app",
+    "file": "/app/print.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "qlock.c"
+    ],
+    "directory": "/app",
+    "file": "/app/qlock.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "rendez.c"
+    ],
+    "directory": "/app",
+    "file": "/app/rendez.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "task.c"
+    ],
+    "directory": "/app",
+    "file": "/app/task.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "primes.c"
+    ],
+    "directory": "/app",
+    "file": "/app/primes.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "tcpproxy.c"
+    ],
+    "directory": "/app",
+    "file": "/app/tcpproxy.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-g",
+      "-m32",
+      "-Wall",
+      "-c",
+      "-I.",
+      "-ggdb",
+      "testdelay.c"
+    ],
+    "directory": "/app",
+    "file": "/app/testdelay.c"
+  }
+]

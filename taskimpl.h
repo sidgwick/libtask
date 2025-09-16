@@ -77,15 +77,16 @@ struct Task {
     Task *allprev;
     Context context;
     uvlong alarmtime;
-    uint id;
-    uchar *stk;
-    uint stksize;
+    uint id;      /* 协程 id */
+    uchar *stk;   /* 栈底 */
+    uint stksize; /* 栈大小 */
     int exiting;
-    int alltaskslot;
+    int alltaskslot; /* 在任务表中的编号 */
     int system;
     int ready;
-    void (*startfn)(void *);
-    void *startarg;
+
+    void (*startfn)(void *); /* 用户指定的协程入口函数 */
+    void *startarg;          /* 用户指定的协程入口参数 */
     void *udata;
 };
 
