@@ -1,12 +1,12 @@
-#define setcontext(u) setmcontext(&(u)->uc_mcontext)
-#define getcontext(u) getmcontext(&(u)->uc_mcontext)
-typedef struct mcontext mcontext_t;
-typedef struct ucontext ucontext_t;
+#define setcontext(u) setxmcontext(&(u)->uc_xmcontext)
+#define getcontext(u) getxmcontext(&(u)->uc_xmcontext)
+typedef struct xmcontext xmcontext_t;
+typedef struct xucontext xucontext_t;
 
-extern int swapcontext(ucontext_t *, const ucontext_t *);
-extern void makecontext(ucontext_t *, void (*)(), int, ...);
-extern int getmcontext(mcontext_t *);
-extern void setmcontext(const mcontext_t *);
+extern int swapcontext(xucontext_t *, const xucontext_t *);
+extern void makecontext(xucontext_t *, void (*)(), int, ...);
+extern int getxmcontext(xmcontext_t *);
+extern void setxmcontext(const xmcontext_t *);
 
 /*-
  * Copyright (c) 1999 Marcel Moolenaar
@@ -70,11 +70,11 @@ extern void setmcontext(const mcontext_t *);
  * $FreeBSD: src/sys/i386/include/ucontext.h,v 1.4 1999/10/11 20:33:09 luoqi Exp $
  */
 
-struct mcontext {
+struct xmcontext {
     /*
      * The first 20 fields must match the definition of
      * sigcontext. So that we can support sigcontext
-     * and ucontext_t at the same time.
+     * and xucontext_t at the same time.
      */
     int mc_onstack; /* XXX - sigcontext compat. */
     int mc_gs;
@@ -101,19 +101,19 @@ struct mcontext {
     int __spare__[17];
 };
 
-struct ucontext {
+struct xucontext {
     /*
      * Keep the order of the first two fields. Also,
      * keep them the first two fields in the structure.
      * This way we can have a union with struct
-     * sigcontext and ucontext_t. This allows us to
+     * sigcontext and xucontext_t. This allows us to
      * support them both at the same time.
      * note: the union is not defined, though.
      */
     sigset_t uc_sigmask;
-    mcontext_t uc_mcontext;
+    xmcontext_t uc_xmcontext;
 
-    struct __ucontext *uc_link;
+    struct __xucontext *uc_link;
     stack_t uc_stack;
     int __spare__[8];
 };

@@ -108,12 +108,7 @@ static Task *taskalloc(void (*fn)(void *), void *arg, uint stack)
     /* leave a few words open on both ends */
     t->context.uc.uc_stack.ss_sp = t->stk + 8;
     t->context.uc.uc_stack.ss_size = t->stksize - 64;
-#if defined(__sun__) && !defined(__MAKECONTEXT_V2_SOURCE) /* sigh */
-#warning "doing sun thing"
-    /* can avoid this with __MAKECONTEXT_V2_SOURCE but only on SunOS 5.9 */
-    t->context.uc.uc_stack.ss_sp =
-        (char *)t->context.uc.uc_stack.ss_sp + t->context.uc.uc_stack.ss_size;
-#endif
+
     /*
      * All this magic is because you have to pass makecontext a
      * function that takes some number of word-sized variables,

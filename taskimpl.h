@@ -1,46 +1,25 @@
 /* Copyright (c) 2005-2006 Russ Cox, MIT; see COPYRIGHT */
 
-#if defined(__sun__)
-#define __EXTENSIONS__ 1 /* SunOS */
-#if defined(__SunOS5_6__) || defined(__SunOS5_7__) || defined(__SunOS5_8__)
-/* NOT USING #define __MAKECONTEXT_V2_SOURCE 1 / * SunOS */
-#else
-#define __MAKECONTEXT_V2_SOURCE 1
-#endif
-#endif
+/* 文件做了精简, 只研究 i386 平台上的实现 */
 
-#define USE_UCONTEXT 1
-
-#if defined(__OpenBSD__) || defined(__mips__)
-#undef USE_UCONTEXT
+/* 研究 libtask 自带的上下文切换实现, 不使用 OS 提供的相关功能 */
 #define USE_UCONTEXT 0
-#endif
 
-#if defined(__APPLE__)
-#include <AvailabilityMacros.h>
-#if defined(MAC_OS_X_VERSION_10_5)
-#undef USE_UCONTEXT
-#define USE_UCONTEXT 0
-#endif
-#endif
+#include "task.h"
 
 #include <assert.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <sched.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#if USE_UCONTEXT
-#include <ucontext.h>
-#endif
-#include "task.h"
-#include <inttypes.h>
-#include <sys/utsname.h>
 
 #define nil ((void *)0)
 #define nelem(x) (sizeof(x) / sizeof((x)[0]))
@@ -79,71 +58,14 @@ char *vsnprint(char *, uint, char *, va_list);
 char *vseprint(char *, char *, char *, va_list);
 char *strecpy(char *, char *, char *);
 
-#if defined(__FreeBSD__) && __FreeBSD__ < 5
-extern int getmcontext(mcontext_t *);
-extern void setmcontext(const mcontext_t *);
-#define setcontext(u) setmcontext(&(u)->uc_mcontext)
-#define getcontext(u) getmcontext(&(u)->uc_mcontext)
-extern int swapcontext(ucontext_t *, const ucontext_t *);
-extern void makecontext(ucontext_t *, void (*)(), int, ...);
-#endif
-
-#if defined(__APPLE__)
-#define mcontext libthread_mcontext
-#define mcontext_t libthread_mcontext_t
-#define ucontext libthread_ucontext
-#define ucontext_t libthread_ucontext_t
-#if defined(__i386__)
 #include "386-ucontext.h"
-#elif defined(__x86_64__)
-#include "amd64-ucontext.h"
-#else
-#include "power-ucontext.h"
-#endif
-#endif
-
-#if defined(__OpenBSD__)
-#define mcontext libthread_mcontext
-#define mcontext_t libthread_mcontext_t
-#define ucontext libthread_ucontext
-#define ucontext_t libthread_ucontext_t
-#if defined __i386__
-#include "386-ucontext.h"
-#else
-#include "power-ucontext.h"
-#endif
-extern pid_t rfork_thread(int, void *, int (*)(void *), void *);
-#endif
-
-#if 0 && defined(__sun__)
-#define mcontext libthread_mcontext
-#define mcontext_t libthread_mcontext_t
-#define ucontext libthread_ucontext
-#define ucontext_t libthread_ucontext_t
-#include "sparc-ucontext.h"
-#endif
-
-#if defined(__arm__)
-int getmcontext(mcontext_t *);
-void setmcontext(const mcontext_t *);
-#define setcontext(u) setmcontext(&(u)->uc_mcontext)
-#define getcontext(u) getmcontext(&(u)->uc_mcontext)
-#endif
-
-#if defined(__mips__)
-#include "mips-ucontext.h"
-int getmcontext(mcontext_t *);
-void setmcontext(const mcontext_t *);
-#define setcontext(u) setmcontext(&(u)->uc_mcontext)
-#define getcontext(u) getmcontext(&(u)->uc_mcontext)
-#endif
 
 typedef struct Context Context;
 
 enum { STACK = 8192 };
 
 struct Context {
-    ucontext_t uc;
+    xucontext_t uc;
 };
 
 struct Task {

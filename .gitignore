@@ -6,3 +6,6 @@ a.out
 .idea
 .venv
 libtask.a
+primes
+tcpproxy
+testdelay

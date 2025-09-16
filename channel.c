@@ -377,7 +377,6 @@ static void altexec(Alt *a)
 int chanalt(Alt *a)
 {
     int i, j, ncan, n, canblock;
-    Channel *c;
     Task *t;
 
     needstack(512);
@@ -399,7 +398,6 @@ int chanalt(Alt *a)
     /* 算一下允许执行的 op 的数量 */
     ncan = 0;
     for (i = 0; i < n; i++) {
-        c = a[i].c;
         if (altcanexec(&a[i])) {
             ncan++;
         }
