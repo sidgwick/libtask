@@ -69,14 +69,15 @@ struct Context {
 };
 
 struct Task {
-    char name[256]; // offset known to acid
-    char state[256];
+    char name[256];  /* 协程名称 */
+    char state[256]; /* 协程状态描述 */
     Task *next;
     Task *prev;
     Task *allnext;
     Task *allprev;
     Context context;
-    uvlong alarmtime;
+    uvlong alarmtime; /* 协程的超时时间(fd.c) */
+
     uint id;      /* 协程 id */
     uchar *stk;   /* 栈底 */
     uint stksize; /* 栈大小 */
