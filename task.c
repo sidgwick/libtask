@@ -17,7 +17,7 @@ static int taskidgen;
 /* ------ */
 
 int taskdebuglevel;
-int taskcount;     /* 记录目前有多少个 "非系统任务" 协程, 这个数目也不包含调度器协程 */
+int taskcount; /* 记录目前有多少个 "非系统任务" 协程, 这个数目也不包含调度器协程 */
 int tasknswitch;   /* 记录当前已经做了多少次协程切换操作 */
 int taskexitval;   /* 当前正在运行中协程退出码 */
 Task *taskrunning; /* 指向当前正在运行的协程对象 */

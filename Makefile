@@ -13,7 +13,7 @@ OFILES=\
 	rendez.o\
 	task.o\
 
-all: $(LIB) primes tcpproxy testdelay
+all: $(LIB) primes tcpproxy testdelay httpload
 
 $(OFILES): taskimpl.h task.h 386-ucontext.h
 

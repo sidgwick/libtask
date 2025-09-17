@@ -168,9 +168,9 @@ uint taskdelay(uint ms)
 
 /**
  * @brief 等待文件描述符出现读写事件
- * 
- * @param fd 
- * @param rw 
+ *
+ * @param fd
+ * @param rw
  */
 void fdwait(int fd, int rw)
 {
@@ -208,10 +208,10 @@ void fdwait(int fd, int rw)
 
 /**
  * @brief 从文件描述符读取数据
- * 
+ *
  * Like fdread but always calls fdwait before reading.
  * 无论文件是否就绪, 都先调用一次 fdwait
- * 
+ *
  * @param fd 文件描述符
  * @param buf 读取数据缓冲区
  * @param n 要读取的字节数量
@@ -230,9 +230,9 @@ int fdread1(int fd, void *buf, int n)
 
 /**
  * @brief 从文件描述符读取数据
- * 
+ *
  * 如果文件暂时不能读, 使用 fdwait 阻塞, 直到允许读取
- * 
+ *
  * @param fd 文件描述符
  * @param buf 读取数据缓冲区
  * @param n 要读取的字节数量
@@ -251,9 +251,9 @@ int fdread(int fd, void *buf, int n)
 
 /**
  * @brief 向文件描述符写入数据
- * 
+ *
  * 如果文件暂时不能写, 使用 fdwait 阻塞, 直到允许写入
- * 
+ *
  * @param fd 文件描述符
  * @param buf 数据缓冲区
  * @param n 要写入的字节数量
