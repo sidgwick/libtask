@@ -38,16 +38,6 @@ typedef unsigned short ushort;
 typedef unsigned long long uvlong;
 typedef long long vlong;
 
-#define print task_print
-#define fprint task_fprint
-#define snprint task_snprint
-#define seprint task_seprint
-#define vprint task_vprint
-#define vfprint task_vfprint
-#define vsnprint task_vsnprint
-#define vseprint task_vseprint
-#define strecpy task_strecpy
-
 int print(char *, ...);
 int fprint(int, char *, ...);
 char *snprint(char *, uint, char *, ...);
