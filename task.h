@@ -43,9 +43,10 @@ struct Tasklist /* used internally */
  * queuing locks
  */
 typedef struct QLock QLock;
+
 struct QLock {
-    Task *owner;
-    Tasklist waiting;
+    Task *owner;      /* 当前锁持有者 */
+    Tasklist waiting; /* 等待持有锁的协程列表 */
 };
 
 void qlock(QLock *);
@@ -57,10 +58,10 @@ void qunlock(QLock *);
  */
 typedef struct RWLock RWLock;
 struct RWLock {
-    int readers;
-    Task *writer;
-    Tasklist rwaiting;
-    Tasklist wwaiting;
+    int readers;       /* 持有锁的读者数量 */
+    Task *writer;      /* 持有锁的写协程 */
+    Tasklist rwaiting; /* 读等待协程 */
+    Tasklist wwaiting; /* 写等待协程 */
 };
 
 void rlock(RWLock *);
