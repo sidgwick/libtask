@@ -9,13 +9,15 @@ enum { STACK = 32768 };
 
 Channel *c;
 
-void delaytask(void *v) {
+void delaytask(void *v)
+{
     taskdelay((int)v);
     printf("awake after %d ms\n", (int)v);
     chansendul(c, 0);
 }
 
-void taskmain(int argc, char **argv) {
+void taskmain(int argc, char **argv)
+{
     int i, n;
 
     c = chancreate(sizeof(unsigned long), 0);

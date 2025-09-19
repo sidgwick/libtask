@@ -6,16 +6,15 @@
 #include <task.h>
 #include <unistd.h>
 
-enum {
-    STACK = 32768
-};
+enum { STACK = 32768 };
 
 char *server;
 int port;
 void proxytask(void *);
 void rwtask(void *);
 
-int *mkfd2(int fd1, int fd2) {
+int *mkfd2(int fd1, int fd2)
+{
     int *a;
 
     a = malloc(2 * sizeof a[0]);
@@ -28,7 +27,19 @@ int *mkfd2(int fd1, int fd2) {
     return a;
 }
 
-void taskmain(int argc, char **argv) {
+void sleeptest(void *v)
+{
+    int i = 0;
+    taskname("sleeping test");
+
+    while (1) {
+        taskstate("sleeping counter=%d", i++);
+        taskdelay(1000);
+    }
+}
+
+void taskmain(int argc, char **argv)
+{
     int cfd, fd;
     int rport;
     char remote[16];
@@ -40,10 +51,13 @@ void taskmain(int argc, char **argv) {
     server = argv[2];
     port = atoi(argv[3]);
 
+    taskcreate(sleeptest, NULL, STACK);
+
     if ((fd = netannounce(TCP, 0, atoi(argv[1]))) < 0) {
         fprintf(stderr, "cannot announce on tcp port %d: %s\n", atoi(argv[1]), strerror(errno));
         taskexitall(1);
     }
+
     fdnoblock(fd);
     while ((cfd = netaccept(fd, remote, &rport)) >= 0) {
         fprintf(stderr, "connection from %s:%d\n", remote, rport);
@@ -51,7 +65,8 @@ void taskmain(int argc, char **argv) {
     }
 }
 
-void proxytask(void *v) {
+void proxytask(void *v)
+{
     int fd, remotefd;
 
     fd = (int)v;
@@ -66,7 +81,8 @@ void proxytask(void *v) {
     taskcreate(rwtask, mkfd2(remotefd, fd), STACK);
 }
 
-void rwtask(void *v) {
+void rwtask(void *v)
+{
     int *a, rfd, wfd, n;
     char buf[2048];
 
