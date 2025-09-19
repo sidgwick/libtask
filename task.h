@@ -74,9 +74,19 @@ void wunlock(RWLock *);
 
 /*
  * sleep and wakeup (condition variables)
+ * Rendez 是 "Rendezvous" 的缩写
  */
 typedef struct Rendez Rendez;
 
+/**
+ * @brief Rendez 汇合点对象
+ *
+ * Rendez 会使用 QLock 保护一个资源对象
+ *  - 当有协程使用 Rendez 的睡眠功能时, 就释放这把锁
+ *  - 当协程聪睡眠状态唤醒的时候, 就重新获取这把锁
+ *
+ * TODO: 这种特性在啥地方有有啊?
+ */
 struct Rendez {
     QLock *l;
     Tasklist waiting;
