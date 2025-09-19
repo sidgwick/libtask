@@ -1,12 +1,12 @@
-#define setcontext(u) setmcontext(&(u)->uc_mcontext)
-#define getcontext(u) getmcontext(&(u)->uc_mcontext)
-typedef struct mcontext smcontext_t;
-typedef struct ucontext sucontext_t;
+#define setcontext(u) setxmcontext(&(u)->uc_xmcontext)
+#define getcontext(u) getxmcontext(&(u)->uc_xmcontext)
+typedef struct xmcontext xmcontext_t;
+typedef struct xucontext xucontext_t;
 
-extern int swapcontext(sucontext_t *, const sucontext_t *);
-extern void makecontext(sucontext_t *, void (*)(), int, ...);
-extern int getmcontext(smcontext_t *);
-extern void setmcontext(const smcontext_t *);
+extern int swapcontext(xucontext_t *, const xucontext_t *);
+extern void makecontext(xucontext_t *, void (*)(), int, ...);
+extern int getxmcontext(xmcontext_t *);
+extern void setxmcontext(const xmcontext_t *);
 
 /*-
  * Copyright (c) 1999 Marcel Moolenaar
@@ -16,7 +16,7 @@ extern void setmcontext(const smcontext_t *);
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer 
+ *    notice, this list of conditions and the following disclaimer
  *    in this position and unchanged.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
@@ -48,7 +48,7 @@ extern void setmcontext(const smcontext_t *);
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer 
+ *    notice, this list of conditions and the following disclaimer
  *    in this position and unchanged.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
@@ -70,12 +70,12 @@ extern void setmcontext(const smcontext_t *);
  * $FreeBSD: src/sys/i386/include/ucontext.h,v 1.4 1999/10/11 20:33:09 luoqi Exp $
  */
 
-struct mcontext {
+struct xmcontext {
     /*
-	 * The first 20 fields must match the definition of
-	 * sigcontext. So that we can support sigcontext
-	 * and sucontext_t at the same time.
-	 */
+     * The first 20 fields must match the definition of
+     * sigcontext. So that we can support sigcontext
+     * and xucontext_t at the same time.
+     */
     int mc_onstack; /* XXX - sigcontext compat. */
     int mc_gs;
     int mc_fs;
@@ -101,19 +101,19 @@ struct mcontext {
     int __spare__[17];
 };
 
-struct ucontext {
+struct xucontext {
     /*
-	 * Keep the order of the first two fields. Also,
-	 * keep them the first two fields in the structure.
-	 * This way we can have a union with struct
-	 * sigcontext and sucontext_t. This allows us to
-	 * support them both at the same time.
-	 * note: the union is not defined, though.
-	 */
+     * Keep the order of the first two fields. Also,
+     * keep them the first two fields in the structure.
+     * This way we can have a union with struct
+     * sigcontext and xucontext_t. This allows us to
+     * support them both at the same time.
+     * note: the union is not defined, though.
+     */
     sigset_t uc_sigmask;
-    smcontext_t uc_mcontext;
+    xmcontext_t uc_xmcontext;
 
-    struct __ucontext *uc_link;
+    struct __xucontext *uc_link;
     stack_t uc_stack;
     int __spare__[8];
 };

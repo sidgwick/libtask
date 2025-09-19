@@ -1,90 +1,86 @@
 /* Copyright (c) 2005-2006 Russ Cox, MIT; see COPYRIGHT */
 
-/*
-struct mcontext {
-	int mc_onstack; // 0
-    int mc_gs;      // 4
-    int mc_fs;      // 8
-    int mc_es;      // 12
-    int mc_ds;      // 16
-    int mc_edi;     // 20
-    int mc_esi;     // 24
-    int mc_ebp;     // 28
-    int mc_isp;     // 32
-    int mc_ebx;     // 36
-    int mc_edx;     // 40
-    int mc_ecx;     // 44
-    int mc_eax;     // 48
-    int mc_trapno;  // 52
-    int mc_err;     // 56
-    int mc_eip;     // 60
-    int mc_cs;      // 64
-    int mc_eflags;  // 68
-    int mc_esp;     // 72
-    int mc_ss;      // 76
-	....
-};
+/* 文件做了精简, 只研究 i386 平台上的实现 */
 
+/**
+ * @brief 更新 CPU 的寄存器的值, 并跳转到新 ip 执行指令
+ *
  * 调用形式如下:
- * uc_mctx = u->uc_mcontext
- * setmcontext(&uc_mctx)
+ * ```c
+ * ctx = u->uc_xmcontext
+ * setxmcontext(&ctx)
+ * ```
+ *
+ * 恢复寄存器的操作直接恢复了 getxmcontext 时刻的信息, 因此最后的 ret 指令,
+ * 其实是相当于从 getxmcontext 里面返回了, 这里的返回值(%eax)已经被设置为 1
+ *
+ * @param xmcontext_t* ctx 上下文指针
+ * @return xmcontext_t* 本函数返回传入的 ctx
  */
-.globl setmcontext
-setmcontext:
-	movl	4(%esp), %eax /* %eax 现在是 &uc_mctx */
+.globl setxmcontext
+setxmcontext:
+    movl    4(%esp), %eax /* %eax = ctx */
 
-	mov	8(%eax), %fs
-	mov	12(%eax), %es
-	mov	16(%eax), %ds
-	mov	76(%eax), %ss
-	movl	20(%eax), %edi
-	movl	24(%eax), %esi
-	movl	28(%eax), %ebp
-	movl	36(%eax), %ebx
-	movl	40(%eax), %edx
-	movl	44(%eax), %ecx
+    movw    8(%eax), %fs
+    movw    12(%eax), %es
+    movw    16(%eax), %ds
+    movw    76(%eax), %ss
+    movl    20(%eax), %edi
+    movl    24(%eax), %esi
+    movl    28(%eax), %ebp
+    movl    36(%eax), %ebx
+    movl    40(%eax), %edx
+    movl    44(%eax), %ecx
 
-	movl	72(%eax), %esp /* 设置运行时栈底 */
-	pushl	60(%eax)	/* new %eip, 设置指令指针 %eip */
-	movl	48(%eax), %eax /* 设置 %eax, 这是 setmcontext 的返回值 */
-	ret
+    movl    72(%eax), %esp
 
-/*
+    /* 设置指令指针 %eip 之后, setxmcontext 自己不能正常返回(它返回到的是 getxmcontext 的返回地址)
+     * 最后设置 %eax, 但是 mc_eax 早在 setxmcontext 的时候已经置 1, 因此这里的返回值就是 1
+     */
+
+    pushl    60(%eax)    /* new %eip */
+    movl    48(%eax), %eax
+    ret
+
+ /**
+ * @brief 保存 CPU 的寄存器的值, 返回保存结果
+ *
  * 调用形式如下:
- * uc_mctx = u->uc_mcontext
- * getmcontext(&uc_mctx)
+ * ```c
+ * ctx = u->uc_xmcontext
+ * getxmcontext(&ctx)
+ * ```
+ *
+ * @param xmcontext_t *ctx 上下文指针
+ * @return int 保存完成返回 0
  */
-.globl getmcontext
-getmcontext:
-	movl	4(%esp), %eax /* --> 将 getmcontext 函数的参数 &uc_mctx 推送到 %eax 寄存器 */
+.globl getxmcontext
+getxmcontext:
+    movl    4(%esp), %eax /* %eax = ctx */
 
-	/* (%eax) = mc_onstack
-	 * 4(%eax) = mc_rdi
-	 */
-	
-	/* 下面先拿到 10 个寄存器的内容, 放到内存里 */
-	mov	%fs, 8(%eax) /* %fs --> mc_rsi */
-	mov	%es, 12(%eax) /* %es --> mc_rdx */
-	mov	%ds, 16(%eax) /* %ds --> mc_rcx */
-	mov	%ss, 76(%eax) /* %ss --> mc_err */
-	movl	%edi, 20(%eax) /* %edi --> mc_r8 */
-	movl	%esi, 24(%eax) /* %esi --> mc_r9 */
-	movl	%ebp, 28(%eax) /* %ebp --> mc_rax */
-	movl	%ebx, 36(%eax) /* %ebx --> mc_rbp */
-	movl	%edx, 40(%eax) /* %edx --> mc_r10 */
-	movl	%ecx, 44(%eax) /* %ecx --> mc_r11 */
+    /* 下面先拿到 10 个寄存器的内容, 放到内存里 */
+    movw    %fs, 8(%eax)
+    movw    %es, 12(%eax)
+    movw    %ds, 16(%eax)
+    movw    %ss, 76(%eax)
+    movl    %edi, 20(%eax)
+    movl    %esi, 24(%eax)
+    movl    %ebp, 28(%eax)
+    movl    %ebx, 36(%eax)
+    movl    %edx, 40(%eax)
+    movl    %ecx, 44(%eax)
 
+    /* 把 %eax 置 1, 将来从 setxmcontext 冒充自 getxmcontext 的返回的时候, 返回值就是 1 */
+    movl    $1, 48(%eax)    /* %eax */
 
-	movl	$1, 48(%eax)	/* %eax, --> mc_r12, $1 将来用于 setmcontext 操作的返回值 */
-	
-	/* 保存 %esp 对应地址的内存数据到 %ecx, 然后保存到 %eax + 60 的位置上 */
-	movl	(%esp), %ecx	/* %eip, (%esp) 指向当前栈帧的栈底 */
-	movl	%ecx, 60(%eax) /* %eip --> mc_r15 */
+    /* 保存返回此函数后继续执行的下一条指令地址 EIP */
+    movl    (%esp), %ecx    /* %eip */
+    movl    %ecx, 60(%eax)
 
-	leal	4(%esp), %ecx	/* %esp, 4(%esp) 对应的的是参数 &ut_mctx, 所以这个操作就是将 &ut_mctx 对应的内存地址加载到 %ecx 中(TODO: 保存了二级指针??) */
-	movl	%ecx, 72(%eax) /* %esp --> mc_flags */
+    /* 保存 ctx 参数的内存位置, 这个位置是 getxmcontext 调用之前, %esp 的值 */
+    leal    4(%esp), %ecx    /* %esp */
+    movl    %ecx, 72(%eax)
 
-	movl	44(%eax), %ecx	/* restore %ecx */
-
-	movl	$0, %eax /* 设定 setmcontext 的返回值 */
-	ret
+    movl    44(%eax), %ecx    /* restore %ecx */
+    movl    $0, %eax
+    ret
