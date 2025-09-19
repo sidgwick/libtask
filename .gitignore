@@ -5,3 +5,8 @@ a.out
 *.dSYM
 .idea
 .venv
+libtask.a
+primes
+tcpproxy
+testdelay
+x.patch

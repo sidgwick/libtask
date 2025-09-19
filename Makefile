@@ -15,11 +15,12 @@ OFILES=\
 
 all: $(LIB) primes tcpproxy testdelay httpload
 
-$(OFILES): taskimpl.h task.h 386-ucontext.h power-ucontext.h
+$(OFILES): taskimpl.h task.h 386-ucontext.h
 
-AS=gcc -m32 -c
-CC=gcc -m32
-CFLAGS=-Wall -c -I. -ggdb -O0
+AS=gcc -c -g -m32
+CC=gcc -g -m32
+CFLAGS=-Wall -c -I. -ggdb
+LDFLAGS=-z noexecstack
 
 %.o: %.S
 	$(AS) $*.S
@@ -31,22 +32,22 @@ $(LIB): $(OFILES)
 	ar rvc $(LIB) $(OFILES)
 
 primes: primes.o $(LIB)
-	$(CC) -o primes primes.o $(LIB)
+	$(CC) $(LDFLAGS) -o primes primes.o $(LIB)
 
 tcpproxy: tcpproxy.o $(LIB)
-	$(CC) -o tcpproxy tcpproxy.o $(LIB) $(TCPLIBS)
+	$(CC) $(LDFLAGS) -o tcpproxy tcpproxy.o $(LIB) $(TCPLIBS)
 
 httpload: httpload.o $(LIB)
-	$(CC) -o httpload httpload.o $(LIB)
+	$(CC) $(LDFLAGS) -o httpload httpload.o $(LIB)
 
 testdelay: testdelay.o $(LIB)
-	$(CC) -o testdelay testdelay.o $(LIB)
+	$(CC) $(LDFLAGS) -o testdelay testdelay.o $(LIB)
 
 testdelay1: testdelay1.o $(LIB)
-	$(CC) -o testdelay1 testdelay1.o $(LIB)
+	$(CC) $(LDFLAGS) -o testdelay1 testdelay1.o $(LIB)
 
 clean:
-	rm -f *.o primes tcpproxy testdelay testdelay1 httpload $(LIB)
+	rm -f asm.s *.o primes tcpproxy testdelay testdelay1 httpload $(LIB)
 
 install: $(LIB)
 	cp $(LIB) /usr/local/lib
