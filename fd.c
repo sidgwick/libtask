@@ -1,11 +1,8 @@
+#include "taskimpl.h"
 #include <fcntl.h>
 #include <sys/poll.h>
 
-#include "taskimpl.h"
-
-enum {
-    MAXFD = 1024
-};
+enum { MAXFD = 1024 };
 
 static struct pollfd pollfd[MAXFD];
 static Task *polltask[MAXFD];
@@ -15,7 +12,16 @@ static Tasklist sleeping;
 static int sleepingcounted;
 static uvlong nsec(void);
 
-void fdtask(void *v) {
+/**
+ * @brief 执行文件描述符相关的事件协程
+ *
+ * 实际上这个函数在没有任何 pollfd 的时候也可以工作:
+ *  - 可以用来做协程 sleep 使用, 参考下面的 taskdelay 函数实现
+ *
+ * @param v 此参数无用
+ */
+void fdtask(void *v)
+{
     int i, ms;
     Task *t;
     uvlong now;
@@ -23,28 +29,18 @@ void fdtask(void *v) {
     tasksystem();
     taskname("fdtask");
     for (;;) {
-        /* let everyone else run
-         * 这里让出 CPU, 如果走到了这个 while 后面的逻辑, 就意味着全部的协程都阻塞,
-         * 所以这里在不断地让出资源, 效果就是如果有除了当前协程和调度器协程之外
-         * 的其他协程运行, 优先运行这些协程.
-         *
-         * 这波操作意味着, 如果有另外一个协程不断地在 "execute -> yield -> execute -> yield",
-         * 这里的 poll 动作将会永远都执行不到
-         *
-         * httpload.c yield_block_fdtask 函数可以验证上面判断 */
+        /* let everyone else run */
         while (taskyield() > 0)
             ;
+
+        /* 到此, 已经没有其他协程在等待调度了 */
 
         /* we're the only one runnable - poll for i/o */
         errno = 0;
         taskstate("poll");
 
-        /* 根据 sleeping 的协程数量, 决定怎么做超时操作
-         * 没有 sleeping 意味着没有协程为自己设置了延时执行, 这中只需要阻塞在 poll 就好了,
-         * 有的话我们必须设置超时时间, 以便到点可以顺利的执行 delay task.
-         *
-         * redis ae.c 里面在处理时间事件的时候也有非常类似的逻辑
-         * 这实际上就是一个简单的 timer: http://whosemario.github.io/2015/11/12/timer/ */
+        /* 如果没有睡眠等待队列, 直接 poll 阻塞等待文件描述符事件
+         * 否则 poll 按照用户设计的 alarmtime 最多等 5s, 然后超时 */
         if ((t = sleeping.head) == nil) {
             ms = -1;
         } else {
@@ -53,16 +49,19 @@ void fdtask(void *v) {
             if (now >= t->alarmtime) {
                 ms = 0;
             } else if (now + 5 * 1000 * 1000 * 1000LL >= t->alarmtime) {
-                /* 如果 t 设定自己 alarmtime 被唤醒, 应该计算到这个时间点纳秒数(不过也不能超过 5s) */
                 ms = (t->alarmtime - now) / 1000000;
             } else {
                 ms = 5000;
             }
         }
 
+        /* poll 系统调用, 如果出错返回负数, 超时返回 0, 有事件发生返回事件数量 */
         if (poll(pollfd, npollfd, ms) < 0) {
-            if (errno == EINTR)
+            if (errno == EINTR) {
+                /* 系统调用如果是被中断打断了
+                 * TODO: 检查 Linux 的 signal 处理时刻, 重新执行系统调用的逻辑 */
                 continue;
+            }
 
             fprint(2, "poll: %s\n", strerror(errno));
             taskexitall(0);
@@ -70,50 +69,66 @@ void fdtask(void *v) {
 
         /* wake up the guys who deserve it */
         for (i = 0; i < npollfd; i++) {
-            while (i < npollfd && pollfd[i].revents) {
-                taskready(polltask[i]); /* 唤醒协程, 使之可以被调度 */
-                --npollfd;
 
-                /* 数组缩容后将最后一个元素填充到删除位置 */
+            /* 因为 while block 会把最后一个 pollfd, 移动到 i 位置,
+             * 因此这里需要使用 while 确保新移动过来的 pollfd 也能得到处理 */
+            while (i < npollfd && pollfd[i].revents) {
+                taskready(polltask[i]);
+                --npollfd;
                 pollfd[i] = pollfd[npollfd];
                 polltask[i] = polltask[npollfd];
             }
         }
 
-        /* 当前有正在睡眠等待任务
-         * 遍历要求延时执行的任务, 符合执行时机条件的, 将它们从延迟队列里面移除并标注为 ready */
         now = nsec();
+
+        /* sleeping 里面是等待睡眠超时的任务
+         * 如果当前时间已经达到超时时间, 就将任务移动到就绪队列 */
         while ((t = sleeping.head) && now >= t->alarmtime) {
             deltask(&sleeping, t);
 
-            /* t 不是系统任务, 并且他是最后一个延时任务, 配合 taskdelay 的处理逻辑看 */
-            if (!t->system && --sleepingcounted == 0)
+            /* 参考 taskdelay 实现, 有睡眠任务的时候 taskcount 会冗余加 1,
+             * 这里因为睡眠完成需要把那个冗余的计数减去 */
+            if (!t->system && --sleepingcounted == 0) {
                 taskcount--;
+            }
 
             taskready(t);
         }
     }
 }
 
-/* 这个函数是在向 sleeping 队列中适当的位置添加元素
- * 所谓适当的位置就是协程的 alarmtime 在链表中由小到大顺序排列 */
-uint taskdelay(uint ms) {
+/**
+ * @brief 任务延时指定的毫秒数
+ *
+ * @param ms
+ * @return uint
+ */
+uint taskdelay(uint ms)
+{
     uvlong when, now;
     Task *t;
 
-    /* 单独起一个协程, 用来处理文件描述符读写事件 */
+    /* fdtask 是具体的睡眠逻辑, 可以把它当成定时器的角色 */
     if (!startedfdtask) {
         startedfdtask = 1;
         taskcreate(fdtask, 0, 32768);
     }
 
-    /* 算出 ms 对应的过期时间, 单位纳秒 */
     now = nsec();
     when = now + (uvlong)ms * 1000000;
+
+    /* sleeping 里面的进程, 是按照睡眠时间从小到大排列的
+     * 这里找到第一个睡眠时间比参数指定的 ms 大的任务节点 */
     for (t = sleeping.head; t != nil && t->alarmtime < when; t = t->next)
         ;
 
-    /* 如果在睡眠列表里面找到数据, 将 taskrunning 节点插到 sleeping 队列的 t 位置 */
+    /* 如果有时间比参数指定的时间大的节点存在, 将当前任务插到这个节点之前
+     * 否则的话, 参数指定的时间是现在所有睡眠任务中时间最大的那个, 因此放到链表最后
+     * 这一步先维护当前任务的节点指针, 插入动作在后面的 if/else 里面
+     *
+     * 注意住调度器运行 taskrunning 的时候, 已经将它从 taskrunqueue 链表中摘除,
+     * 因此这里不需要摘除操作 */
     if (t) {
         taskrunning->prev = t->prev;
         taskrunning->next = t;
@@ -131,27 +146,37 @@ uint taskdelay(uint ms) {
         sleeping.head = t;
     }
 
-    if (t->next)
+    if (t->next) {
         t->next->prev = t;
-    else
+    } else {
         sleeping.tail = t;
+    }
 
-    /* 这里, 如果 t 不是系统任务, 并且它又是第一个延时任务, 那么给 taskcount 计数 +1
-     * 这样做原因是, 防止有延时任务还没执行完程序就被强制退出了(TODO: 什么情况会出现这个?)
+    /* 如果 t 不是系统任务, sleepingcounted 计数加 1, 任务统计数量加 1
+     * 这里维护 taskcount, 是因为 fdtask 被标记为 system 任务, 为了避免调度器在睡眠
+     * 任务睡眠过程中退出, 这里需要登记睡眠任务也在任务数量计数范围之内
      *
-     * 可以配合 taskexit 函数理解这里 */
-    if (!t->system && sleepingcounted++ == 0)
+     * TODO: 这个计数是冗余的, 正常情况下睡眠的任务计数已经在 taskcount 里面了, 这里属于额外再加一次 */
+    if (!t->system && sleepingcounted++ == 0) {
         taskcount++;
+    }
 
     taskswitch();
 
     return (nsec() - now) / 1000000;
 }
 
-/* 等待 fd 上面发生读/写事件 */
-void fdwait(int fd, int rw) {
+/**
+ * @brief 等待文件描述符出现读写事件
+ *
+ * @param fd
+ * @param rw
+ */
+void fdwait(int fd, int rw)
+{
     int bits;
 
+    /* fdtask 是具体的等待逻辑 */
     if (!startedfdtask) {
         startedfdtask = 1;
         taskcreate(fdtask, 0, 32768);
@@ -162,41 +187,59 @@ void fdwait(int fd, int rw) {
         abort();
     }
 
-    /* 当前协程(调用 fdwait 那个)任务状态, 在等待什么事件的发生 */
     taskstate("fdwait for %s", rw == 'r' ? "read" : rw == 'w' ? "write" : "error");
-
     bits = 0;
     switch (rw) {
-        case 'r':
-            bits |= POLLIN;
-            break;
-        case 'w':
-            bits |= POLLOUT;
-            break;
+    case 'r':
+        bits |= POLLIN;
+        break;
+    case 'w':
+        bits |= POLLOUT;
+        break;
     }
 
-    polltask[npollfd] = taskrunning; /* 记录 fd 对应的任务 */
-    pollfd[npollfd].fd = fd;         /* 组合 poll 使用的数据结构 */
+    polltask[npollfd] = taskrunning;
+    pollfd[npollfd].fd = fd;
     pollfd[npollfd].events = bits;
     pollfd[npollfd].revents = 0;
     npollfd++;
-    taskswitch(); /* 当前协程切出去, 让出 CPU 资源 */
+    taskswitch();
 }
 
-/* Like fdread but always calls fdwait before reading.
- * 这个函数不管 fd 是否读取就绪, 直接 wait 一下然后再读 */
-int fdread1(int fd, void *buf, int n) {
+/**
+ * @brief 从文件描述符读取数据
+ *
+ * Like fdread but always calls fdwait before reading.
+ * 无论文件是否就绪, 都先调用一次 fdwait
+ *
+ * @param fd 文件描述符
+ * @param buf 读取数据缓冲区
+ * @param n 要读取的字节数量
+ * @return int 实际读取的字节数量
+ */
+int fdread1(int fd, void *buf, int n)
+{
     int m;
 
     do {
-        fdwait(fd, 'r'); /* 这里就实现了阻塞读取的效果 */
+        fdwait(fd, 'r');
     } while ((m = read(fd, buf, n)) < 0 && errno == EAGAIN);
 
     return m;
 }
 
-/* 这个先尝试读取, 没数据才开始 wait */
-int fdread(int fd, void *buf, int n) {
+/**
+ * @brief 从文件描述符读取数据
+ *
+ * 如果文件暂时不能读, 使用 fdwait 阻塞, 直到允许读取
+ *
+ * @param fd 文件描述符
+ * @param buf 读取数据缓冲区
+ * @param n 要读取的字节数量
+ * @return int 实际读取的字节数量
+ */
+int fdread(int fd, void *buf, int n)
+{
     int m;
 
     while ((m = read(fd, buf, n)) < 0 && errno == EAGAIN) {
@@ -206,8 +249,18 @@ int fdread(int fd, void *buf, int n) {
     return m;
 }
 
-/* 写数据包装 */
-int fdwrite(int fd, void *buf, int n) {
+/**
+ * @brief 向文件描述符写入数据
+ *
+ * 如果文件暂时不能写, 使用 fdwait 阻塞, 直到允许写入
+ *
+ * @param fd 文件描述符
+ * @param buf 数据缓冲区
+ * @param n 要写入的字节数量
+ * @return int 实际写入的字节数量
+ */
+int fdwrite(int fd, void *buf, int n)
+{
     int m, tot;
 
     for (tot = 0; tot < n; tot += m) {
@@ -227,17 +280,29 @@ int fdwrite(int fd, void *buf, int n) {
     return tot;
 }
 
-/* 设置 fd 为非阻塞 */
-int fdnoblock(int fd) {
+/**
+ * @brief 设置文件描述符 fd 为不阻塞模式
+ *
+ * @param fd
+ * @return int
+ */
+int fdnoblock(int fd)
+{
     return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
 }
 
-/* 计算当前的纳秒数 */
-static uvlong nsec(void) {
+/**
+ * @brief 获取当前时间的纳秒表示
+ *
+ * @return uvlong
+ */
+static uvlong nsec(void)
+{
     struct timeval tv;
 
-    if (gettimeofday(&tv, 0) < 0)
+    if (gettimeofday(&tv, 0) < 0) {
         return -1;
+    }
 
     return (uvlong)tv.tv_sec * 1000 * 1000 * 1000 + tv.tv_usec * 1000;
 }
