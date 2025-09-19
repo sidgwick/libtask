@@ -15,13 +15,13 @@ extern "C" {
  */
 
 typedef struct Task Task;
-typedef struct Tasklist Tasklist; /* Tasklist 是追踪所有协程对象的双向链表 */
+typedef struct Tasklist Tasklist;
 
 int anyready(void);
 int taskcreate(void (*f)(void *arg), void *arg, unsigned int stacksize);
 void taskexit(int);
 void taskexitall(int);
-void taskmain(int argc, char *argv[]); /* 需要由用户提供的程序入口函数 */
+void taskmain(int argc, char *argv[]);
 int taskyield(void);
 void **taskdata(void);
 void needstack(int);
@@ -41,13 +41,12 @@ struct Tasklist /* used internally */
 
 /*
  * queuing locks
- *
- * 锁实现
  */
 typedef struct QLock QLock;
+
 struct QLock {
-    Task *owner;
-    Tasklist waiting;
+    Task *owner;      /* 当前锁持有者 */
+    Tasklist waiting; /* 等待持有锁的协程列表 */
 };
 
 void qlock(QLock *);
@@ -56,15 +55,13 @@ void qunlock(QLock *);
 
 /*
  * reader-writer locks
- *
- * 读写锁
  */
 typedef struct RWLock RWLock;
 struct RWLock {
-    int readers;       /* 持有读锁的数量 */
-    Task *writer;      /* 写协程 */
-    Tasklist rwaiting; /* 等待获取读锁的协程列表 */
-    Tasklist wwaiting; /* 等待获取写锁的协程列表 */
+    int readers;       /* 持有锁的读者数量 */
+    Task *writer;      /* 持有锁的写协程 */
+    Tasklist rwaiting; /* 读等待协程 */
+    Tasklist wwaiting; /* 写等待协程 */
 };
 
 void rlock(RWLock *);
@@ -77,9 +74,19 @@ void wunlock(RWLock *);
 
 /*
  * sleep and wakeup (condition variables)
+ * Rendez 是 "Rendezvous" 的缩写
  */
 typedef struct Rendez Rendez;
 
+/**
+ * @brief Rendez 汇合点对象
+ *
+ * Rendez 会使用 QLock 保护一个资源对象
+ *  - 当有协程使用 Rendez 的睡眠功能时, 就释放这把锁
+ *  - 当协程聪睡眠状态唤醒的时候, 就重新获取这把锁
+ *
+ * TODO: 这种特性在啥地方有有啊?
+ */
 struct Rendez {
     QLock *l;
     Tasklist waiting;
@@ -97,36 +104,35 @@ typedef struct Altarray Altarray;
 typedef struct Channel Channel;
 
 enum {
-    CHANEND,   /* 标志当前位置已经处于通道的末尾位置 */
-    CHANSND,   /* 发送数据操作 */
-    CHANRCV,   /* 接受数据操作 */
-    CHANNOP,   /* 无操作占位标记 */
-    CHANNOBLK, /* 不阻塞标记 */
+    CHANEND,
+    CHANSND,
+    CHANRCV,
+    CHANNOP,
+    CHANNOBLK,
 };
 
 struct Alt {
-    Channel *c;      /* alt 元素对应的 channel */
-    void *v;         /* 值 */
-    unsigned int op; /* 操作 */
-    Task *task;      /* 对应的协程 */
-    Alt *xalt;       /* Alt 元素对应的操作暂存数据, 这个指针主要用于将来清理这些暂存数据 */
+    Channel *c;
+    void *v;
+    unsigned int op;
+    Task *task;
+    Alt *xalt;
 };
 
 struct Altarray {
     Alt **a;
-    unsigned int n; /* a 字段中有效元素数量 */
-    unsigned int m; /* a 字段可容纳元素数量 */
+    unsigned int n;
+    unsigned int m;
 };
 
 struct Channel {
-    unsigned int elemsize; /* channel 中现有元素的大小(单个) */
-
-    unsigned char *buf;   /* 元素 buffer */
-    unsigned int bufsize; /* buf 最多可以容纳元素数量 */
-    unsigned int nbuf;    /* 现在 buf 里面有所少元素 */
-    unsigned int off;     /* 当前读取/写入通道的 offset */
-    Altarray asend;       /* 发送通道 */
-    Altarray arecv;       /* 接受通道 */
+    unsigned int bufsize;
+    unsigned int elemsize;
+    unsigned char *buf;
+    unsigned int nbuf;
+    unsigned int off;
+    Altarray asend;
+    Altarray arecv;
     char *name;
 };
 
