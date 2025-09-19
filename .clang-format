@@ -1,0 +1,35 @@
+# find . -name '*.cpp' -o -name '*.h' | xargs clang-format -i
+
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+
+# AllowAllParametersOfDeclarationOnNextLine: false
+# BinPackArguments: false
+# BinPackParameters: false
+# AllowAllParametersOfDeclarationOnNextLine: false
+
+BreakBeforeBinaryOperators: None
+BreakBeforeBraces: Custom
+IndentWidth: 4
+ColumnLimit: 100
+ReflowComments: false
+# CommentPragmas: "^ +-"
+SpacesInLineCommentPrefix:
+  Minimum: 1 # 注释符后至少保留1个空格
+  Maximum: 1 # 注释符后最多保留1个空格
